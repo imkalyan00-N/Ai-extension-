@@ -13,66 +13,49 @@ app.post('/process-task', async (req, res) => {
     try {
         const { pageContext, pageElements, currentTask } = req.body;
         
-        const prompt = `
-        Task: ${currentTask}
-        
-        Page Context:
-        ${pageContext}
+        const prompt = `Task: ${currentTask}\nPage Context:\n${pageContext}\nInteractive Elements:\n${JSON.stringify(pageElements)}\n\nInstructions:\n1. Find the correct answer for the question or next step.\n2. Match it with the correct 'id' from the Interactive Elements list.\n3. Output ONLY a valid JSON object. No extra text.\nFormat: {"action": "click", "selector": "#id"} OR {"action": "type", "selector": "#id", "value": "text"}`;
 
-        Interactive Elements:
-        ${JSON.stringify(pageElements)}
-
-        Instructions:
-        1. Find the correct answer for the question or the next logical step.
-        2. Match it with the correct 'id' from the Interactive Elements list.
-        3. Output ONLY a valid JSON object. No extra text, no markdown.
-        Format: {"action": "click", "selector": "#id"} OR {"action": "type", "selector": "#id", "value": "text"}
-        `;
-
-        // Nuvvu icchina models list. First nunchi try chestundi.
+        // Latest fast models list. First nunchi try chestundi
         const modelsToTry = [
+            "gemini-3.5-flash",
+            "gemini-3.1-flash-lite",
             "gemini-3.1-pro", 
             "gemini-3-flash", 
-            "gemini-3.1-flash-lite", 
             "gemini-2.5-flash", 
             "gemini-1.5-flash"
         ];
 
         let actionData = null;
 
-        // Okkoka model ni try chestundi
         for (const modelName of modelsToTry) {
             try {
-                console.log(`Trying model: ${modelName}...`);
+                console.log("Trying model: " + modelName + "...");
                 const model = genAI.getGenerativeModel({ model: modelName });
                 const result = await model.generateContent(prompt);
                 
                 let aiResponse = result.response.text();
                 
-                // Clean JSON instantly
-                aiResponse = aiResponse.replace(/```json/g, '').replace(/
-```/g, '').trim();
+                // Safe JSON cleaning (No Regex bugs)
+                aiResponse = aiResponse.split('```json').join('').split('```').join('').trim();
                 actionData = JSON.parse(aiResponse);
                 
-                console.log(`✅ Success with model: ${modelName}`);
-                break; // Model work ayithe loop aapesi bayataki vachhestundi
+                console.log("✅ Success with model: " + modelName);
+                break; // Work aite loop aagipothundi
                 
             } catch (err) {
-                console.log(`❌ Failed with model: ${modelName}. Trying next...`);
-                // Fail ayithe emi aagadu, next model ki vellipothundi
+                console.log("❌ Failed with model: " + modelName + " - Trying next...");
             }
         }
 
-        // Anni try chesaka data vasthe frontend ki pampistundi
         if (actionData) {
             res.json(actionData);
         } else {
-            throw new Error("All models failed to generate a response.");
+            res.status(500).json({ error: "All models failed" });
         }
 
     } catch (error) {
-        console.error("Final AI Error:", error);
-        res.status(500).json({ error: "Failed to process task. Check Render logs." });
+        console.error("Server Error:", error);
+        res.status(500).json({ error: "Failed to process task." });
     }
 });
 
