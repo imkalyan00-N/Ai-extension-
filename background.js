@@ -2,7 +2,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === "PROCESS_PAGE") {
         
         // Ikkada nee Render Live URL replace cheyyi
-        const RENDER_BACKEND_URL = "https://your-app-name.onrender.com/process-task"; 
+        const RENDER_BACKEND_URL = "https://ai-extension-rxog.onrender.com"; 
         
         fetch(RENDER_BACKEND_URL, {
             method: 'POST',
