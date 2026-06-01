@@ -1,38 +1,39 @@
-// Floating "Start AI" button create chestunnam
 const startBtn = document.createElement('button');
-startBtn.innerText = "🤫 Start AI Task";
-startBtn.style.cssText = "position:fixed; bottom:20px; right:20px; z-index:99999; padding:15px; background:#007BFF; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;";
+startBtn.innerText = "💪😉 Start kalyan AI Task";
+startBtn.style.cssText = "position:fixed; bottom:20px; right:20px; z-index:99999; padding:15px; background:#007BFF; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.3s;";
 document.body.appendChild(startBtn);
 
 startBtn.addEventListener('click', async () => {
-    startBtn.innerText = "⏳ AI Thinking...";
+    startBtn.innerText = "⚡ Thinking Fast...";
+    startBtn.style.background = "#FF9800"; // Orange color while thinking
     
-    // Page loni unna buttons, links, inputs ni capture chestundi
-    const elements = Array.from(document.querySelectorAll('button, a, input, textarea')).map(el => {
+    // Fast ga page text read cheyadam (up to 4000 characters)
+    const pageText = document.body.innerText.substring(0, 4000); 
+
+    // Elements filter cheyadam (IDs unte ok, lekapothe kotha ID assign cheyadam)
+    const elements = Array.from(document.querySelectorAll('button, a, input, textarea, select, label, [role="button"], [role="radio"]')).map((el, index) => {
+        if (!el.id) el.id = 'ai-btn-' + index; 
         return {
-            tag: el.tagName,
             id: el.id,
-            className: el.className,
-            text: el.innerText || el.placeholder || el.value,
+            tag: el.tagName,
+            text: (el.innerText || el.value || el.placeholder || '').trim().substring(0, 100),
             type: el.type
         };
-    }).filter(el => el.text || el.id); // Khaali elements ni filter chestunnam
+    }).filter(el => el.text !== ""); // Khaali elements vadilestham
 
-    // Background script ki data pampistundi
     chrome.runtime.sendMessage({
         type: "PROCESS_PAGE",
         data: {
+            pageContext: pageText,
             pageElements: elements,
-            currentTask: "Login to the portal and complete the first assignment" // Nee task ikkada change cheskovachu
+            currentTask: "Analyze the question context, find the correct answer, and click its option/radio button."
         }
     });
 });
 
-// AI nunchi vachina command ni execute chese logic
 chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "EXECUTE_ACTION") {
         const { action, selector, value } = message.data;
-        
         const targetElement = document.querySelector(selector);
         
         if (targetElement) {
@@ -40,12 +41,14 @@ chrome.runtime.onMessage.addListener((message) => {
                 targetElement.click();
             } else if (action === "type") {
                 targetElement.value = value;
-                // Dispatch event to trigger React/Angular state changes if any
-                targetElement.dispatchEvent(new Event('input', { bubbles: true })); 
+                targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+                targetElement.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            startBtn.innerText = "✅ Action Done! Click again for next step.";
+            startBtn.innerText = "✅ Done! Next?";
+            startBtn.style.background = "#4CAF50"; // Green color on success
         } else {
-            startBtn.innerText = "❌ Element not found. Try again.";
+            startBtn.innerText = "❌ Element Missed";
+            startBtn.style.background = "#F44336"; // Red color on fail
         }
     }
 });
