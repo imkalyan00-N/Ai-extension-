@@ -30,9 +30,8 @@ app.post('/process-task', async (req, res) => {
         const result = await model.generateContent(prompt);
         let aiResponse = result.response.text();
         
-        // Clean JSON response
-        aiResponse = aiResponse.replace(/```json/g, '').replace(/
-```/g, '').trim();
+        // Clean JSON response (Regex error fixed here)
+        aiResponse = aiResponse.replaceAll('```json', '').replaceAll('```', '').trim();
         const actionData = JSON.parse(aiResponse);
 
         res.json(actionData);
