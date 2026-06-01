@@ -5,33 +5,39 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
-// Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/process-task', async (req, res) => {
     try {
-        const { pageElements, currentTask } = req.body;
+        const { pageContext, pageElements, currentTask } = req.body;
         
-        // Gemini model initialization
-        const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-Lite" });
+        // Nuvvu test chesina super fast model
+        const model = genAI.getGenerativeModel({ model: "gemini-3.1-flash-lite" });
 
+        // Prompt ni chala short chesam, appude fast ga answer isthundi
         const prompt = `
-        You are an autonomous web agent completing a task: "${currentTask}".
-        Here are the interactive elements on the current webpage:
+        Task: ${currentTask}
+        
+        Page Context:
+        ${pageContext}
+
+        Interactive Elements:
         ${JSON.stringify(pageElements)}
 
-        Based on the task, what should be the exact next action? 
-        Respond STRICTLY in JSON format without any markdown blocks or extra text:
-        {"action": "click" | "type" | "done", "selector": "CSS selector to target the element", "value": "text to type if action is type"}
+        Instructions:
+        1. Find the correct answer for the question or the next logical step.
+        2. Match it with the correct 'id' from the Interactive Elements list.
+        3. Output ONLY a valid JSON object. No extra text, no markdown.
+        Format: {"action": "click", "selector": "#id"} OR {"action": "type", "selector": "#id", "value": "text"}
         `;
 
         const result = await model.generateContent(prompt);
         let aiResponse = result.response.text();
         
-        // Clean JSON response (Regex error fixed here)
-        aiResponse = aiResponse.replaceAll('```json', '').replaceAll('```', '').trim();
+        // Clean JSON instantly
+        aiResponse = aiResponse.replace(/```json/g, '').replace(/```/g, '').trim();
         const actionData = JSON.parse(aiResponse);
 
         res.json(actionData);
